@@ -13,5 +13,4 @@ __pycache__/
 # Файлы IDE
 .vscode/
 .idea/
-
-# Файлы для урока
+.env
