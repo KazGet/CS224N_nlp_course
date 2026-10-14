@@ -180,8 +180,19 @@ class Transformer(nn.Module):
         self, x: Int[Tensor, "batch_size seq_len"]
     ) -> Float[Tensor, "batch seq_len vocab_size"]:
 
-        # TODO, complete
-        return torch.empty(1)
+        E = self.embeddings(x)
+        PE = self.position_embeddings(
+            torch.arange(0, x.shape[1], device=x.device))
+        PE = rearrange(PE, 's d -> 1 s d')
+        E = E + PE
+
+        for block in self.backbone:
+            E = block(E)
+
+        x = self.final_layer_norm(E)
+        logits = self.lm_head(x)
+
+        return logits
 
     @torch.no_grad()
     def generate(
@@ -190,15 +201,19 @@ class Transformer(nn.Module):
         num_new_tokens: int,
     ) -> Int[Tensor, "batch_size seq_len+num_new_tokens"]:
 
-        # TODO, complete
-        return torch.empty(1)
+        for _ in range(num_new_tokens):
+            logits = self.forward(x)
+            next_token = torch.argmax(logits[:, -1, :], dim=-1)
+            next_token = next_token.unsqueeze(1)
+            x = torch.cat([x, next_token], dim=1)
+
+        return x
 
     def get_loss_on_batch(
         self,
         input_ids: Int[Tensor, "batch_size seq_len"],
     ) -> Float[Tensor, ""]:
 
-        # TODO, complete
         return torch.empty(1)
 
     @classmethod
