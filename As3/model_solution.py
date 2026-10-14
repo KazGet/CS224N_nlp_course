@@ -129,8 +129,15 @@ class DecoderBlock(nn.Module):
         self, x: Float[Tensor, "batch seq_len d_model"]
     ) -> Float[Tensor, "batch seq_len d_model"]:
 
-        # TODO complete
-        return torch.empty(1)
+        L = self.pre_layer_norm(x)
+        L = self.attention(L)
+        x = x + L
+
+        M = self.post_layer_norm(x)
+        M = self.mlp(M)
+        x = x + M
+
+        return x
 
 
 class Transformer(nn.Module):
