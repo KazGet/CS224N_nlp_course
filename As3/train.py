@@ -161,8 +161,8 @@ def train(
 if __name__ == "__main__":
 
     tiny_model_config = ModelConfig(
-        d_model=33,
-        n_heads=3,
+        d_model=256,
+        n_heads=8,
         n_layers=3,
         context_length=512,
         vocab_size=50257,
