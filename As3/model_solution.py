@@ -214,7 +214,15 @@ class Transformer(nn.Module):
         input_ids: Int[Tensor, "batch_size seq_len"],
     ) -> Float[Tensor, ""]:
 
-        return torch.empty(1)
+        logits = self.forward(input_ids)
+
+        pred = logits[:, :-1, :]
+        target = input_ids[:, 1:]
+
+        pred = rearrange(pred, "b s v -> (b s) v")
+        target = rearrange(target, "b s -> (b s)")
+
+        return F.cross_entropy(pred, target)
 
     @classmethod
     def from_pretrained(cls):

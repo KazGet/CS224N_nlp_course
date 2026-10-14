@@ -1,18 +1,16 @@
 """A simple training loop for our transformer model"""
+from model_solution import Transformer, ModelConfig
+import matplotlib.pyplot as plt
+import torch
+from torch import Tensor
+from jaxtyping import Int
+from typing import List, Optional
+from transformers import AutoTokenizer
+from tqdm import tqdm
+from datasets import load_dataset
+import os
 import warnings
 warnings.filterwarnings("ignore")
-import os
-
-from datasets import load_dataset
-from tqdm import tqdm
-from transformers import AutoTokenizer
-from typing import List, Optional
-from jaxtyping import Int
-from torch import Tensor
-import torch
-import matplotlib.pyplot as plt
-
-from model_solution import Transformer, ModelConfig
 
 
 if torch.cuda.is_available():
@@ -43,7 +41,8 @@ def get_chunked_tinystories(
     current_chunk: List[int] = []
     for row in tqdm(train_dataset, desc="Tokenizing dataset"):
         document: str = row["text"]
-        tokens: List[int] = tokenizer(document, truncation=True, max_length=chunk_size).input_ids
+        tokens: List[int] = tokenizer(
+            document, truncation=True, max_length=chunk_size).input_ids
 
         # Fill current chunk up to chunk_size
         current_chunk.extend(tokens)
@@ -64,21 +63,21 @@ def plot_results(
     save_path: str,
 ) -> None:
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
-    
+
     # Left panel - Loss curve
     ax1.plot(losses)
     ax1.set_title('Training Loss')
     ax1.set_xlabel('Batch')
     ax1.set_ylabel('Loss')
     ax1.grid(True)
-    
+
     # Right panel - Gradient norm
     ax2.plot(grad_norms)
     ax2.set_title('Gradient Norm')
     ax2.set_xlabel('Batch')
     ax2.set_ylabel('Grad Norm')
     ax2.grid(True)
-    
+
     plt.tight_layout()
     plt.savefig(save_path)
     plt.close()
@@ -99,13 +98,13 @@ def train(
     chunk_size: int = model_config.context_length
     cached_dataset_path: str = f"./datasets/tinystories_10pct_chunk_size_{chunk_size}.pt"
     os.makedirs(os.path.dirname(cached_dataset_path), exist_ok=True)
-    
+
     if os.path.exists(cached_dataset_path):
         dataset = torch.load(cached_dataset_path)
     else:
-        dataset: Int[Tensor, "num_chunks chunk_size"] = get_chunked_tinystories(chunk_size)
+        dataset: Int[Tensor, "num_chunks chunk_size"] = get_chunked_tinystories(
+            chunk_size)
         torch.save(dataset, cached_dataset_path)
-
 
     # Create dense batches of [batch_size, seq_len]
     model = Transformer(model_config).to(device)
@@ -129,9 +128,11 @@ def train(
             break
 
         if num_steps_completed % 10 == 0 and num_steps_completed > 0:
-            plot_results(losses, grad_norms, save_path=f"./losses_and_grad_norms.png")
+            plot_results(losses, grad_norms,
+                         save_path=f"./losses_and_grad_norms.png")
 
-        batch: Int[Tensor, "batch_size chunk_size"] = dataset[i:i+batch_size].to(device)
+        batch: Int[Tensor, "batch_size chunk_size"] = dataset[i:i +
+                                                              batch_size].to(device)
 
         optimizer.zero_grad()
 
@@ -143,7 +144,8 @@ def train(
 
         # Clip gradients
         with torch.no_grad():
-            grad_norm: float = torch.nn.utils.clip_grad_norm_(model.parameters(), gradient_clipping).item()
+            grad_norm: float = torch.nn.utils.clip_grad_norm_(
+                model.parameters(), gradient_clipping).item()
             grad_norms.append(grad_norm)
 
         optimizer.step()
@@ -152,10 +154,8 @@ def train(
 
         num_steps_completed += 1
 
-
     # Done with training, plot results in single plot
     plot_results(losses, grad_norms, save_path="./losses_and_grad_norms.png")
-
 
 
 if __name__ == "__main__":
@@ -169,10 +169,9 @@ if __name__ == "__main__":
     )
 
     train(
-        learning_rate=1e-5,
+        learning_rate=1e-3,
         gradient_clipping=1,
-        model_config = tiny_model_config,
+        model_config=tiny_model_config,
         batch_size=16,
         max_steps=100,
     )
-
